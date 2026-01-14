@@ -7,14 +7,18 @@ import { usePlayerStore } from '@/store/usePlayerStore'
 import Header from '@/components/Layout/Header'
 import BottomNav from '@/components/Layout/BottomNav'
 import AudioPlayer from '@/components/Player/AudioPlayer'
-import { Play, MoreVertical, Download, Share2, Edit } from 'lucide-react'
+import { Play, MoreVertical, Download, Share2, Edit, Music } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { db } from '@/lib/firebase/config'
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
+import toast from 'react-hot-toast'
 
 export default function LibraryPage() {
   const { user, loading } = useAuthStore()
   const { setCurrentTrack } = usePlayerStore()
   const router = useRouter()
   const [musicList, setMusicList] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -22,11 +26,36 @@ export default function LibraryPage() {
     }
   }, [user, loading, router])
 
-  // TODO: Fetch music from Firestore/API
+  // Load user's music from Firestore
   useEffect(() => {
-    // Load user's music from Firestore
-    // setMusicList(music)
+    if (user) {
+      loadUserMusic()
+    }
   }, [user])
+
+  const loadUserMusic = async () => {
+    if (!user) return
+    
+    setIsLoading(true)
+    try {
+      const q = query(
+        collection(db, 'music'),
+        where('userId', '==', user.uid),
+        orderBy('createdAt', 'desc')
+      )
+      const querySnapshot = await getDocs(q)
+      const music = querySnapshot.docs.map((doc) => ({
+        ...doc.data(),
+        id: doc.id,
+      }))
+      setMusicList(music)
+    } catch (error) {
+      console.error('Error loading music:', error)
+      toast.error('Gagal memuat musik')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handlePlay = (track: any) => {
     setCurrentTrack(track)
@@ -118,13 +147,13 @@ export default function LibraryPage() {
                       </button>
                       <button
                         className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
-                        title="Share"
+                        title="Bagikan"
                       >
                         <Share2 size={16} className="text-gray-400" />
                       </button>
                       <button
                         className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
-                        title="More"
+                        title="Opsi lainnya"
                       >
                         <MoreVertical size={16} className="text-gray-400" />
                       </button>
