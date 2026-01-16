@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
 import Header from '@/components/Layout/Header'
@@ -77,10 +78,12 @@ export default function SettingsPage() {
         <section className="glass rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-4 mb-6">
             {user.photoURL ? (
-              <img
+              <Image
                 src={user.photoURL}
                 alt={user.displayName || 'User'}
-                className="w-20 h-20 rounded-full border-2 border-primary shadow-lg shadow-primary/30 object-cover"
+                width={80}
+                height={80}
+                className="rounded-full border-2 border-primary shadow-lg shadow-primary/30 object-cover"
               />
             ) : (
               <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center border-2 border-primary shadow-lg shadow-primary/30">

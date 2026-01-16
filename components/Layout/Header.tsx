@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuthStore } from '@/store/useAuthStore'
 import { LogOut, User } from 'lucide-react'
 import { signOut } from 'firebase/auth'
@@ -29,10 +30,12 @@ export default function Header() {
         {user ? (
           <div className="flex items-center gap-4">
             {user.photoURL ? (
-              <img
+              <Image
                 src={user.photoURL}
                 alt={user.displayName || 'User'}
-                className="w-10 h-10 rounded-full border-2 border-primary shadow-lg shadow-primary/30 object-cover"
+                width={40}
+                height={40}
+                className="rounded-full border-2 border-primary shadow-lg shadow-primary/30 object-cover"
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center border-2 border-primary shadow-lg shadow-primary/30">
