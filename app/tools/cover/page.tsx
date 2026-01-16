@@ -13,7 +13,7 @@ import toast from 'react-hot-toast'
 export default function CoverToolPage() {
   const { user, loading } = useAuthStore()
   const router = useRouter()
-  const { mutate: coverAudio, isLoading } = useCoverAudio()
+  const { cover: coverAudio, loading: isLoading } = useCoverAudio()
 
   const [audioId, setAudioId] = useState('')
   const [prompt, setPrompt] = useState('')

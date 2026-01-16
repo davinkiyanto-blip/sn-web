@@ -13,7 +13,7 @@ import toast from 'react-hot-toast'
 export default function VideoToolPage() {
   const { user, loading } = useAuthStore()
   const router = useRouter()
-  const { mutate: createMusicVideo, isLoading } = useCreateMusicVideo()
+  const { createVideo: createMusicVideo, loading: isLoading } = useCreateMusicVideo()
 
   const [audioId, setAudioId] = useState('')
   const [result, setResult] = useState<any>(null)

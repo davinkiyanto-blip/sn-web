@@ -22,11 +22,11 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       const provider = new GoogleAuthProvider()
       const result = await signInWithPopup(auth, provider)
       setUser(result.user)
-      toast.success('Berhasil masuk!')
+      toast.success('Successfully signed in!')
       onClose()
     } catch (error: any) {
       console.error('Sign in error:', error)
-      toast.error('Gagal masuk. Silakan coba lagi.')
+      toast.error('Sign in failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -46,10 +46,10 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-white mb-2">
-            Selamat Datang
+            Welcome
           </h2>
           <p className="text-gray-400">
-            Masuk untuk membuat musik AI yang menakjubkan
+            Sign in to create amazing AI music
           </p>
         </div>
 
@@ -86,13 +86,13 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
         </button>
 
         <p className="text-xs text-gray-500 text-center mt-6">
-          Dengan melanjutkan, Anda menyetujui{' '}
+          By continuing, you agree to our{' '}
           <a href="/privacy" className="text-primary hover:underline">
-            Kebijakan Privasi
+            Privacy Policy
           </a>{' '}
-          dan{' '}
+          and{' '}
           <a href="/terms" className="text-primary hover:underline">
-            Syarat Ketentuan
+            Terms of Service
           </a>
         </p>
       </div>

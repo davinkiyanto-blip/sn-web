@@ -187,27 +187,17 @@ export default function LandingPage() {
                   href="/privacy"
                   className="text-gray-400 hover:text-white text-sm transition-colors"
                 >
-                  Kebijakan Privasi
+                  Privacy Policy
                 </a>
                 <a
                   href="/terms"
                   className="text-gray-400 hover:text-white text-sm transition-colors"
                 >
-                  Syarat Ketentuan
+                  Terms of Service
                 </a>
               </div>
             </div>
           </footer>
-        </div>
-
-        {/* Sticky CTA (Mobile) */}
-        <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gray-900/95 backdrop-blur-lg border-t border-gray-800 md:hidden">
-          <button
-            onClick={() => setShowLogin(true)}
-            className="w-full py-4 rounded-xl bg-gradient-primary text-white font-semibold text-lg"
-          >
-            Mulai Sekarang
-          </button>
         </div>
       </div>
 

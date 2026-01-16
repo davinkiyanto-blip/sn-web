@@ -13,8 +13,8 @@ import toast from 'react-hot-toast'
 export default function ExtendToolPage() {
   const { user, loading } = useAuthStore()
   const router = useRouter()
-  const { mutate: uploadAudio, isLoading: uploadLoading } = useUploadAudio()
-  const { mutate: extendMusic, isLoading: extendLoading } = useExtendMusic()
+  const { upload: uploadAudio, loading: uploadLoading } = useUploadAudio()
+  const { extend: extendMusic, loading: extendLoading } = useExtendMusic()
 
   const [step, setStep] = useState<'upload' | 'extend'>('upload')
   const [file, setFile] = useState<File | null>(null)

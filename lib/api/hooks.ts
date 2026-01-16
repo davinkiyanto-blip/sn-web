@@ -311,3 +311,71 @@ export function useCreateMusicVideo() {
 
   return { createVideo, loading }
 }
+
+// Payment/Topup Hook
+export function useCreatePayment() {
+  const [loading, setLoading] = useState(false)
+  const { user } = useAuthStore()
+
+  const createPayment = async (amount: number, packageName: string) => {
+    if (!user) {
+      toast.error('Silakan login terlebih dahulu')
+      return null
+    }
+
+    setLoading(true)
+    try {
+      const token = await user.getIdToken()
+      const response = await apiClient.post(
+        '/payment/create-transaction',
+        { amount, packageName },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+      return response.data
+    } catch (error: any) {
+      console.error('Payment error:', error)
+      const message = error.response?.data?.error || 'Gagal membuat pembayaran'
+      toast.error(message)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { createPayment, isLoading: loading }
+}
+
+export function useCheckPaymentStatus() {
+  const [loading, setLoading] = useState(false)
+  const { user } = useAuthStore()
+
+  const checkStatus = async (orderId: string) => {
+    if (!user) return null
+
+    setLoading(true)
+    try {
+      const token = await user.getIdToken()
+      const response = await apiClient.post(
+        '/payment/check-status',
+        { orderId },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+      return response.data
+    } catch (error: any) {
+      console.error('Status check error:', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { checkStatus, isLoading: loading }
+}

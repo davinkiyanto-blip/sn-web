@@ -13,7 +13,7 @@ import toast from 'react-hot-toast'
 export default function MidiToolPage() {
   const { user, loading } = useAuthStore()
   const router = useRouter()
-  const { mutate: generateMidi, isLoading } = useGenerateMidi()
+  const { generateMidi, loading: isLoading } = useGenerateMidi()
 
   const [audioId, setAudioId] = useState('')
   const [result, setResult] = useState<any>(null)

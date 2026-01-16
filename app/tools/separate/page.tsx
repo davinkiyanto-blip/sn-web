@@ -13,7 +13,7 @@ import toast from 'react-hot-toast'
 export default function SeparateToolPage() {
   const { user, loading } = useAuthStore()
   const router = useRouter()
-  const { mutate: separateVocals, isLoading } = useSeparateVocals()
+  const { separate: separateVocals, loading: isLoading } = useSeparateVocals()
 
   const [audioId, setAudioId] = useState('')
   const [result, setResult] = useState<any>(null)

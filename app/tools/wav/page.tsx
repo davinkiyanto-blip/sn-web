@@ -13,7 +13,7 @@ import toast from 'react-hot-toast'
 export default function WavToolPage() {
   const { user, loading } = useAuthStore()
   const router = useRouter()
-  const { mutate: convertToWav, isLoading } = useConvertToWav()
+  const { convertWav: convertToWav, loading: isLoading } = useConvertToWav()
 
   const [audioId, setAudioId] = useState('')
   const [result, setResult] = useState<any>(null)

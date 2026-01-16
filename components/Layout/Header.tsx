@@ -32,10 +32,10 @@ export default function Header() {
               <img
                 src={user.photoURL}
                 alt={user.displayName || 'User'}
-                className="w-10 h-10 rounded-full"
+                className="w-10 h-10 rounded-full border-2 border-primary shadow-lg shadow-primary/30 object-cover"
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center border-2 border-primary shadow-lg shadow-primary/30">
                 <User size={20} className="text-white" />
               </div>
             )}

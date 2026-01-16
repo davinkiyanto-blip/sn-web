@@ -1,25 +1,51 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
 import Header from '@/components/Layout/Header'
 import BottomNav from '@/components/Layout/BottomNav'
 import AudioPlayer from '@/components/Player/AudioPlayer'
+import TopUpModal from '@/components/Payment/TopUpModal'
 import { User, CreditCard, Bell, Shield, LogOut } from 'lucide-react'
 import { signOut } from 'firebase/auth'
-import { auth } from '@/lib/firebase/config'
+import { auth, db } from '@/lib/firebase/config'
+import { doc, getDoc } from 'firebase/firestore'
 import toast from 'react-hot-toast'
 
 export default function SettingsPage() {
   const { user, loading } = useAuthStore()
   const router = useRouter()
+  const [credits, setCredits] = useState(0)
+  const [showTopUpModal, setShowTopUpModal] = useState(false)
+  const [dataLoading, setDataLoading] = useState(true)
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/')
     }
   }, [user, loading, router])
+
+  // Fetch credits from Firestore
+  useEffect(() => {
+    const fetchCredits = async () => {
+      if (!user) return
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid))
+        if (userDoc.exists()) {
+          setCredits(userDoc.data().credits || 0)
+        }
+        setDataLoading(false)
+      } catch (error) {
+        console.error('Failed to fetch credits:', error)
+        setDataLoading(false)
+      }
+    }
+
+    if (user) {
+      fetchCredits()
+    }
+  }, [user])
 
   const handleSignOut = async () => {
     try {
@@ -31,7 +57,7 @@ export default function SettingsPage() {
     }
   }
 
-  if (loading) {
+  if (loading || dataLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -54,10 +80,10 @@ export default function SettingsPage() {
               <img
                 src={user.photoURL}
                 alt={user.displayName || 'User'}
-                className="w-20 h-20 rounded-full"
+                className="w-20 h-20 rounded-full border-2 border-primary shadow-lg shadow-primary/30 object-cover"
               />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center border-2 border-primary shadow-lg shadow-primary/30">
                 <User size={40} className="text-white" />
               </div>
             )}
@@ -80,13 +106,16 @@ export default function SettingsPage() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">Kredit Tersedia</span>
-                <span className="text-white font-semibold">0</span>
+                <span className="text-white font-semibold">{credits.toLocaleString('id-ID')}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">Limit Harian</span>
                 <span className="text-white font-semibold">10 / 10</span>
               </div>
-              <button className="w-full mt-4 py-3 rounded-xl bg-primary hover:bg-primary-dark transition-colors text-white font-semibold">
+              <button 
+                onClick={() => setShowTopUpModal(true)}
+                className="w-full mt-4 py-3 rounded-xl bg-primary hover:bg-primary-dark transition-colors text-white font-semibold"
+              >
                 Top Up Kredit
               </button>
             </div>
@@ -141,6 +170,28 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* TopUp Modal */}
+      <TopUpModal 
+        isOpen={showTopUpModal} 
+        onClose={() => setShowTopUpModal(false)}
+        onSuccess={() => {
+          // Refresh credits
+          const fetchCredits = async () => {
+            if (!user) return
+            try {
+              const userDoc = await getDoc(doc(db, 'users', user.uid))
+              if (userDoc.exists()) {
+                setCredits(userDoc.data().credits || 0)
+              }
+            } catch (error) {
+              console.error('Failed to fetch credits:', error)
+            }
+          }
+          fetchCredits()
+        }}
+      />
+
       <BottomNav />
       <AudioPlayer />
     </div>

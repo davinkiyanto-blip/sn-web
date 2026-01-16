@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from 'react'
 import { usePlayerStore } from '@/store/usePlayerStore'
 import { Play, Pause, SkipForward, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import dynamic from 'next/dynamic'
+
+const WaveSurfer = dynamic(() => import('wavesurfer.js'), { ssr: false })
 
 export default function AudioPlayer() {
   const {
@@ -19,63 +22,95 @@ export default function AudioPlayer() {
   } = usePlayerStore()
 
   const audioRef = useRef<HTMLAudioElement>(null)
+  const waveformRef = useRef<HTMLDivElement>(null)
+  const waveSurferRef = useRef<any>(null)
+  const [isSeeking, setIsSeeking] = useState(false)
 
+  // Initialize WaveSurfer with current track
   useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
+    if (!waveformRef.current || !currentTrack) return
 
-    const updateTime = () => setCurrentTime(audio.currentTime)
-    const updateDuration = () => setDuration(audio.duration)
-    const handleEnded = () => {
-      setIsPlaying(false)
-      nextTrack()
+    const initWaveSurfer = async () => {
+      const WaveSurfer = (await import('wavesurfer.js')).default
+      
+      // Clean up previous instance
+      if (waveSurferRef.current) {
+        waveSurferRef.current.destroy()
+      }
+
+      const waveSurfer = WaveSurfer.create({
+        container: waveformRef.current!,
+        waveColor: '#6366f1',
+        progressColor: '#a855f7',
+        height: 60,
+        barWidth: 2,
+        barRadius: 3,
+        barGap: 2,
+        normalize: true,
+        fillParent: true,
+        interact: true,
+        autoplay: false,
+      })
+
+      waveSurfer.load(currentTrack.audio_url)
+
+      waveSurfer.on('ready', () => {
+        setDuration(waveSurfer.getDuration())
+      })
+
+      waveSurfer.on('timeupdate', (currentTime: number) => {
+        if (!isSeeking) {
+          setCurrentTime(currentTime)
+        }
+      })
+
+      waveSurfer.on('interaction', () => {
+        setIsSeeking(false)
+      })
+
+      waveSurferRef.current = waveSurfer
     }
 
-    audio.addEventListener('timeupdate', updateTime)
-    audio.addEventListener('loadedmetadata', updateDuration)
-    audio.addEventListener('ended', handleEnded)
+    initWaveSurfer()
 
     return () => {
-      audio.removeEventListener('timeupdate', updateTime)
-      audio.removeEventListener('loadedmetadata', updateDuration)
-      audio.removeEventListener('ended', handleEnded)
+      if (waveSurferRef.current) {
+        waveSurferRef.current.destroy()
+      }
     }
-  }, [setCurrentTime, setDuration, setIsPlaying, nextTrack])
+  }, [currentTrack, setDuration, setCurrentTime])
 
+  // Handle play/pause
   useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    if (isPlaying) {
-      audio.play()
-    } else {
-      audio.pause()
+    if (waveSurferRef.current) {
+      if (isPlaying) {
+        waveSurferRef.current.play()
+      } else {
+        waveSurferRef.current.pause()
+      }
     }
   }, [isPlaying])
 
+  // Handle seek
   useEffect(() => {
-    const audio = audioRef.current
-    if (!audio || !currentTrack) return
+    if (waveSurferRef.current && isSeeking && duration) {
+      waveSurferRef.current.seekTo(currentTime / duration)
+    }
+  }, [currentTime, duration, isSeeking])
 
-    audio.src = currentTrack.audio_url
-    audio.load()
-    setIsPlaying(true)
-  }, [currentTrack, setIsPlaying])
-
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    const newTime = parseFloat(e.target.value)
-    audio.currentTime = newTime
-    setCurrentTime(newTime)
+  const togglePlay = () => {
+    setIsPlaying(!isPlaying)
   }
 
-  const formatTime = (seconds: number) => {
-    if (isNaN(seconds)) return '0:00'
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}`
+  const handleWaveformClick = () => {
+    setIsSeeking(true)
+  }
+
+  const formatTime = (time: number) => {
+    if (!time || isNaN(time)) return '0:00'
+    const minutes = Math.floor(time / 60)
+    const seconds = Math.floor(time % 60)
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
   if (!currentTrack) return null
@@ -86,73 +121,77 @@ export default function AudioPlayer() {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-lg border-t border-gray-800"
+        className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-white/10 md:bottom-4 md:left-4 md:right-4 md:rounded-xl md:border md:border-white/10"
       >
-        <audio ref={audioRef} />
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center gap-4">
-            {/* Cover Art */}
-            <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-              <img
-                src={currentTrack.image_url}
-                alt={currentTrack.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
+        <audio ref={audioRef} crossOrigin="anonymous" />
+        <div className="container mx-auto max-w-4xl px-4 py-4">
+          {/* Waveform */}
+          <div 
+            ref={waveformRef}
+            className="rounded-lg overflow-hidden cursor-pointer mb-4 hover:opacity-80 transition-opacity"
+            onMouseDown={handleWaveformClick}
+            onMouseUp={() => setIsSeeking(false)}
+            onMouseLeave={() => setIsSeeking(false)}
+          />
 
-            {/* Track Info */}
-            <div className="flex-1 min-w-0">
-              <h4 className="text-white font-semibold truncate">
-                {currentTrack.title || 'Untitled'}
-              </h4>
-              <p className="text-gray-400 text-sm truncate">
-                {currentTrack.tags?.split(',')[0] || 'Music'}
-              </p>
-            </div>
-
-            {/* Controls */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="p-2 rounded-full bg-primary hover:bg-primary-dark transition-colors"
-              >
-                {isPlaying ? (
-                  <Pause size={20} className="text-white" />
+          {/* Controls */}
+          <div className="flex items-center justify-between gap-4">
+            {/* Cover Art & Info */}
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                {currentTrack.image_url ? (
+                  <img
+                    src={currentTrack.image_url}
+                    alt={currentTrack.title}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  <Play size={20} className="text-white" />
+                  <span className="text-2xl">♪</span>
                 )}
-              </button>
+              </div>
 
-              <button
-                onClick={nextTrack}
-                className="p-2 rounded-full hover:bg-gray-800 transition-colors"
-              >
-                <SkipForward size={20} className="text-gray-400" />
-              </button>
-
-              <button
-                onClick={() => setCurrentTrack(null)}
-                className="p-2 rounded-full hover:bg-gray-800 transition-colors"
-              >
-                <X size={20} className="text-gray-400" />
-              </button>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-white truncate">
+                  {currentTrack.title || 'Untitled'}
+                </h4>
+                <p className="text-sm text-gray-400 truncate">
+                  {currentTrack.style || 'Generated Music'}
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* Progress Bar */}
-          <div className="mt-2">
-            <input
-              type="range"
-              min="0"
-              max={duration || 0}
-              value={currentTime}
-              onChange={handleSeek}
-              className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
+            {/* Play Button */}
+            <button
+              onClick={togglePlay}
+              className="p-3 rounded-full bg-indigo-600 hover:bg-indigo-700 transition-colors flex-shrink-0"
+            >
+              {isPlaying ? (
+                <Pause size={20} className="text-white" />
+              ) : (
+                <Play size={20} className="text-white fill-white" />
+              )}
+            </button>
+
+            {/* Skip Button */}
+            <button
+              onClick={() => nextTrack()}
+              className="p-3 rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
+            >
+              <SkipForward size={20} className="text-gray-300" />
+            </button>
+
+            {/* Time Display */}
+            <div className="text-xs text-gray-400 flex-shrink-0 min-w-[80px] text-right">
+              {formatTime(currentTime)} / {formatTime(duration)}
             </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setCurrentTrack(null)}
+              className="p-3 rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
+            >
+              <X size={20} className="text-gray-300" />
+            </button>
           </div>
         </div>
       </motion.div>
