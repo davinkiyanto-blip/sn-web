@@ -1,7 +1,7 @@
 export interface GenerateMusicRequest {
   customMode: boolean
   instrumental: boolean
-  prompt: string
+  prompt?: string
   model?: 'V3_5' | 'V4' | 'V4_5' | 'V4_5PLUS' | 'V5'
   negativeTags?: string
   style?: string
@@ -9,10 +9,16 @@ export interface GenerateMusicRequest {
 }
 
 export interface GenerateMusicResponse {
+  creator: string
   ok: boolean
-  message: string
-  jobId: string
-  task_url: string
+  status: 'pending' | 'processing' | 'done' | 'error'
+  records?: MusicRecord[]
+  completedAt?: string
+}
+
+export interface ValidationError {
+  error: string
+  details: string[]
 }
 
 export interface TaskStatusResponse {

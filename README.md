@@ -48,16 +48,16 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 
-# API Configuration (PRIVATE - Server-side only)
-SUNO_API_BASE_URL=https://api.paxsenix.org
-SUNO_API_KEY=your_suno_api_key_here
-ENCRYPTION_KEY=your_32_character_encryption_key_here
+# MelodiAPI Configuration (PRIVATE - Server-side only)
+SUNO_API_KEY=sk-paxsenix-dE4GvkEYMBQbqtB8Et9vEDfzUTjnpLN_0yvu7YjfFWDTvRWl
+SUNO_API_BASE_URL=https://melodi-api.vercel.app
 ```
 
 **PENTING**: 
 - Jangan pernah commit file `.env.local` ke repository
-- Semua variabel `SUNO_API_*` dan `ENCRYPTION_KEY` harus tetap rahasia
+- Semua variabel `SUNO_API_*` harus tetap rahasia (server-side only)
 - Hanya variabel `NEXT_PUBLIC_*` yang aman untuk diekspos ke client
+- MelodiAPI backend menangani semua komunikasi dengan provider musik
 
 4. **Setup Firebase**
 
@@ -132,14 +132,15 @@ Semua API keys dan credentials disimpan di server-side hanya:
 
 Semua endpoint API tersedia di `/app/api/suno/`:
 
-- `POST /api/suno/generate` - Generate music
-- `GET /api/suno/task/[jobId]` - Check task status
+- `POST /api/suno/generate` - Generate music (menggunakan MelodiAPI backend)
 - `POST /api/suno/extend` - Extend music
 - `POST /api/suno/cover` - Cover audio
 - `POST /api/suno/separate` - Separate vocals
 - `POST /api/suno/midi` - Convert to MIDI
 - `POST /api/suno/video` - Create music video
 - `POST /api/suno/wav` - Convert to WAV
+
+**Dokumentasi Lengkap**: Lihat [MELODIAPI_INTEGRATION.md](./MELODIAPI_INTEGRATION.md) untuk detail parameter dan validasi.
 
 ## 🚀 Deployment
 

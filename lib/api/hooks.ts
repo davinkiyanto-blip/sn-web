@@ -43,17 +43,20 @@ export function usePollTaskStatus() {
   const [loading, setLoading] = useState(false)
   const { user } = useAuthStore()
 
-  const poll = async (jobId: string) => {
+  const poll = async (taskUrl: string) => {
     if (!user) return null
 
     setLoading(true)
     try {
       const token = await user.getIdToken()
-      const response = await apiClient.get(`/suno/task/${jobId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await apiClient.post('/suno/poll',
+        { task_url: taskUrl },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
       return response.data
     } catch (error: any) {
       console.error('Poll error:', error)
@@ -145,7 +148,7 @@ export function useCoverAudio() {
   const [loading, setLoading] = useState(false)
   const { user } = useAuthStore()
 
-  const cover = async (audioId: string, prompt: string) => {
+  const cover = async (data: { audio_id: string; prompt: string }) => {
     if (!user) {
       toast.error('Silakan login terlebih dahulu')
       return null
@@ -155,8 +158,8 @@ export function useCoverAudio() {
     try {
       const token = await user.getIdToken()
       const response = await apiClient.post('/suno/cover', {
-        audio_id: audioId,
-        prompt: prompt,
+        audio_id: data.audio_id,
+        prompt: data.prompt,
       }, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -174,6 +177,179 @@ export function useCoverAudio() {
   }
 
   return { cover, loading }
+}
+
+export function useCustomGenerate() {
+  const [loading, setLoading] = useState(false)
+  const { user } = useAuthStore()
+
+  const customGenerate = async (data: any) => {
+    if (!user) {
+      toast.error('Silakan login terlebih dahulu')
+      return null
+    }
+
+    setLoading(true)
+    try {
+      const token = await user.getIdToken()
+      const response = await apiClient.post('/suno/custom-generate', data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      return response.data
+    } catch (error: any) {
+      console.error('Custom generate error:', error)
+      const message = error.response?.data?.error || 'Gagal membuat musik custom'
+      toast.error(message)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { customGenerate, loading }
+}
+
+export function useAddVocals() {
+  const [loading, setLoading] = useState(false)
+  const { user } = useAuthStore()
+
+  const addVocals = async (audioId: string, prompt?: string) => {
+    if (!user) {
+      toast.error('Silakan login terlebih dahulu')
+      return null
+    }
+
+    setLoading(true)
+    try {
+      const token = await user.getIdToken()
+      const response = await apiClient.post('/suno/add-vocals', {
+        audio_id: audioId,
+        prompt: prompt || '',
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      return response.data
+    } catch (error: any) {
+      console.error('Add vocals error:', error)
+      const message = error.response?.data?.error || 'Gagal menambahkan vokal'
+      toast.error(message)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { addVocals, loading }
+}
+
+export function useAddInstrumental() {
+  const [loading, setLoading] = useState(false)
+  const { user } = useAuthStore()
+
+  const addInstrumental = async (audioId: string, prompt?: string) => {
+    if (!user) {
+      toast.error('Silakan login terlebih dahulu')
+      return null
+    }
+
+    setLoading(true)
+    try {
+      const token = await user.getIdToken()
+      const response = await apiClient.post('/suno/add-instrumental', {
+        audio_id: audioId,
+        prompt: prompt || '',
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      return response.data
+    } catch (error: any) {
+      console.error('Add instrumental error:', error)
+      const message = error.response?.data?.error || 'Gagal menambahkan instrumental'
+      toast.error(message)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { addInstrumental, loading }
+}
+
+export function useUploadAndCover() {
+  const [loading, setLoading] = useState(false)
+  const { user } = useAuthStore()
+
+  const uploadAndCover = async (file: File, prompt: string) => {
+    if (!user) {
+      toast.error('Silakan login terlebih dahulu')
+      return null
+    }
+
+    setLoading(true)
+    try {
+      const token = await user.getIdToken()
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('prompt', prompt)
+
+      const response = await apiClient.post('/suno/upload-cover', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      return response.data
+    } catch (error: any) {
+      console.error('Upload and cover error:', error)
+      const message = error.response?.data?.error || 'Gagal upload dan cover audio'
+      toast.error(message)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { uploadAndCover, loading }
+}
+
+export function useGenerateLyrics() {
+  const [loading, setLoading] = useState(false)
+  const { user } = useAuthStore()
+
+  const generateLyrics = async (prompt: string) => {
+    if (!user) {
+      toast.error('Silakan login terlebih dahulu')
+      return null
+    }
+
+    setLoading(true)
+    try {
+      const token = await user.getIdToken()
+      const response = await apiClient.post('/suno/generate-lyrics', {
+        prompt,
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      return response.data
+    } catch (error: any) {
+      console.error('Generate lyrics error:', error)
+      const message = error.response?.data?.error || 'Gagal membuat lirik'
+      toast.error(message)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { generateLyrics, loading }
 }
 
 export function useSeparateVocals() {
