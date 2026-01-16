@@ -30,10 +30,10 @@ export default function RootLayout({
                 style: {
                   background: '#1f1f1f',
                   color: '#fff',
-                border: '1px solid #333',
-              },
-            }}
-          />
+                  border: '1px solid #333',
+                },
+              }}
+            />
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Prepare request body for melodiapi
+    // Prepare request body for PaxSenix API
     const requestBody: any = {
       customMode: customMode || false,
       instrumental: instrumental || false,
@@ -116,21 +116,23 @@ export async function POST(request: NextRequest) {
         // Instrumental mode - clear prompt
         requestBody.prompt = ''
       } else {
-        // Vocal mode - include prompt
+        // Vocal mode - include prompt (lyrics)
         requestBody.prompt = prompt || ''
       }
     } else {
-      // Non-custom mode
+      // Non-custom mode - only prompt is required
       requestBody.prompt = prompt || ''
+      // Leave style and title empty in non-custom mode
       requestBody.style = ''
-      requestBody.title = title || ''
+      requestBody.title = ''
     }
 
-    // Make request to MelodiAPI (server-side only)
-    const response = await fetch(`${apiBaseUrl}/api/generate`, {
+    // Make request to PaxSenix API (server-side only)
+    const response = await fetch(`${apiBaseUrl}/ai-music/suno-music`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify(requestBody),
     })
@@ -147,16 +149,6 @@ export async function POST(request: NextRequest) {
           },
           { status: 400 }
         )
-      } else if (response.status === 502) {
-        return NextResponse.json(
-          { error: 'Music generation failed at provider', details: errorData },
-          { status: 502 }
-        )
-      } else if (response.status === 504) {
-        return NextResponse.json(
-          { error: 'Music generation timeout (exceeded 5 minutes)', details: errorData },
-          { status: 504 }
-        )
       } else {
         return NextResponse.json(
           { error: 'Failed to generate music', details: errorData },
@@ -167,8 +159,8 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json()
 
-    // MelodiAPI handles polling server-side and returns final response
-    // Format: { creator, ok, status: 'done', records: [...], completedAt }
+    // PaxSenix API returns: { creator, ok, message, jobId, task_url }
+    // Return this to client for polling
     return NextResponse.json(data)
   } catch (error: any) {
     console.error('Generate music error:', error)

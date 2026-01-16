@@ -3,7 +3,7 @@ import { verifyIdToken } from '@/lib/auth/middleware'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
     // Verify authentication
@@ -12,7 +12,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { jobId } = params
+    const { jobId } = await params
     const apiKey = process.env.SUNO_API_KEY
     const apiBaseUrl = process.env.SUNO_API_BASE_URL
 
@@ -23,19 +23,31 @@ export async function GET(
       )
     }
 
-    // Poll task status
+    console.log(`Polling task status for jobId: ${jobId}`)
+
+    // Poll task status from PaxSenix API
     const response = await fetch(`${apiBaseUrl}/task/${jobId}`, {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
     })
 
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error(`PaxSenix API error for ${jobId}:`, response.status, errorData)
+      return NextResponse.json(
+        { error: 'Failed to get task status', details: errorData },
+        { status: response.status }
+      )
+    }
+
     const data = await response.json()
 
-    // Replace creator field
+    // Transform response: Replace "creator":"@PaxSenix" with "Author":"@dafidxcode"
     if (data.creator) {
-      data.creator = '@dafidxcode'
+      delete data.creator
+      data.Author = '@dafidxcode'
     }
 
     return NextResponse.json(data)

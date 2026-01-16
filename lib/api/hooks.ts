@@ -1,5 +1,5 @@
 // Custom hooks for API calls with error handling
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import apiClient from './client'
 import toast from 'react-hot-toast'
@@ -17,7 +17,7 @@ export function useGenerateMusic() {
     setLoading(true)
     try {
       const token = await user.getIdToken()
-      const response = await apiClient.post('/suno/generate', data, {
+      const response = await apiClient.post('/suno/simple', data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -43,20 +43,22 @@ export function usePollTaskStatus() {
   const [loading, setLoading] = useState(false)
   const { user } = useAuthStore()
 
-  const poll = async (taskUrl: string) => {
+  const poll = useCallback(async (taskUrl: string) => {
     if (!user) return null
 
     setLoading(true)
     try {
       const token = await user.getIdToken()
-      const response = await apiClient.post('/suno/poll',
-        { task_url: taskUrl },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      )
+
+      // Extract jobId from task_url
+      // task_url format: https://api.paxsenix.org/task/1768393259037-n49bnbx3o
+      const jobId = taskUrl.split('/').pop()
+
+      const response = await apiClient.get(`/suno/task/${jobId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       return response.data
     } catch (error: any) {
       console.error('Poll error:', error)
@@ -64,7 +66,7 @@ export function usePollTaskStatus() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
 
   return { poll, loading }
 }
@@ -192,7 +194,10 @@ export function useCustomGenerate() {
     setLoading(true)
     try {
       const token = await user.getIdToken()
-      const response = await apiClient.post('/suno/custom-generate', data, {
+      // Determine endpoint based on instrumental flag
+      const endpoint = data.instrumental ? '/suno/instrument' : '/suno/lyrics'
+
+      const response = await apiClient.post(endpoint, data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

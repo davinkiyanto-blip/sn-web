@@ -32,7 +32,7 @@ export default function AudioPlayer() {
 
     const initWaveSurfer = async () => {
       const WaveSurfer = (await import('wavesurfer.js')).default
-      
+
       // Clean up previous instance
       if (waveSurferRef.current) {
         waveSurferRef.current.destroy()
@@ -52,7 +52,8 @@ export default function AudioPlayer() {
         autoplay: false,
       })
 
-      waveSurfer.load(currentTrack.audio_url)
+      const proxyUrl = `/api/download?url=${encodeURIComponent(currentTrack.audio_url)}&inline=true`
+      waveSurfer.load(proxyUrl)
 
       waveSurfer.on('ready', () => {
         setDuration(waveSurfer.getDuration())
@@ -126,7 +127,7 @@ export default function AudioPlayer() {
         <audio ref={audioRef} crossOrigin="anonymous" />
         <div className="container mx-auto max-w-4xl px-4 py-4">
           {/* Waveform */}
-          <div 
+          <div
             ref={waveformRef}
             className="rounded-lg overflow-hidden cursor-pointer mb-4 hover:opacity-80 transition-opacity"
             onMouseDown={handleWaveformClick}

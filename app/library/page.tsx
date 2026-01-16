@@ -35,7 +35,7 @@ export default function LibraryPage() {
 
   const loadUserMusic = async () => {
     if (!user) return
-    
+
     setIsLoading(true)
     try {
       const q = query(
@@ -59,6 +59,16 @@ export default function LibraryPage() {
 
   const handlePlay = (track: any) => {
     setCurrentTrack(track)
+  }
+
+  const handleDownload = (track: any) => {
+    if (track.audio_url) {
+      const filename = track.title ? track.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'music'
+      const downloadUrl = `/api/download?url=${encodeURIComponent(track.audio_url)}&filename=${encodeURIComponent(filename)}`
+      window.location.href = downloadUrl
+    } else {
+      toast.error('Link download tidak tersedia')
+    }
   }
 
   if (loading) {
@@ -140,6 +150,7 @@ export default function LibraryPage() {
                         <Play size={16} className="text-gray-400" />
                       </button>
                       <button
+                        onClick={() => handleDownload(track)}
                         className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
                         title="Download"
                       >

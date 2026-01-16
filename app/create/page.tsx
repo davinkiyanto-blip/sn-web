@@ -54,11 +54,14 @@ export default function CreatePage() {
   const [taskStatus, setTaskStatus] = useState<'pending' | 'processing' | 'done' | 'failed' | null>(null)
   const [musicData, setMusicData] = useState<any>(null)
   const [pollAttempts, setPollAttempts] = useState(0)
+  const attemptsRef = useRef(0)
+  const toastIdRef = useRef<string | null>(null)
 
   // Cover form state
   const [audioId, setAudioId] = useState('')
   const [coverPrompt, setCoverPrompt] = useState('')
   const [coverResult, setCoverResult] = useState<any>(null)
+  const [progressMessage, setProgressMessage] = useState<string>('')
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
 
@@ -72,22 +75,56 @@ export default function CreatePage() {
   useEffect(() => {
     if (!taskUrl) return
 
-    const MAX_ATTEMPTS = 60 // 5 minutes (60 * 5 seconds)
+    attemptsRef.current = 0
+    if (!toastIdRef.current) {
+      toastIdRef.current = toast.loading('Membuat musik... (ini mungkin memakan waktu beberapa menit)')
+    }
 
-    const pollOnce = async () => {
+    const MAX_ATTEMPTS = 300 // 25 minutes
+    let timeoutId: NodeJS.Timeout | null = null
+    let isMounted = true
+
+    const pollLoop = async () => {
+      if (!isMounted) return
+
       try {
         const response = await poll(taskUrl)
         console.log('Poll response:', response)
-        setTaskStatus(response.status)
-        setPollAttempts(prev => prev + 1)
 
-        if (response.status === 'done' && response.records && response.records.length > 0) {
+        if (!isMounted) return
+
+        setTaskStatus(response.status)
+
+        // Update progress message
+        if (response.progress) {
+          setProgressMessage(response.progress)
+        } else if (response.status === 'processing') {
+          setProgressMessage('Sedang memproses audio...')
+        } else if (response.status === 'pending') {
+          setProgressMessage('Menunggu antrian server...')
+        }
+
+        attemptsRef.current += 1
+        setPollAttempts(attemptsRef.current)
+
+        let shouldStop = false
+        const isDone = response.status === 'done' || response.status === 'completed' || response.status === 'succeeded'
+
+        if (isDone && response.records && response.records.length > 0) {
+          shouldStop = true
+
+          // Dismiss loading toast
+          if (toastIdRef.current) {
+            toast.dismiss(toastIdRef.current)
+            toastIdRef.current = null
+          }
+
           const music = response.records[0]
           setMusicData(music)
           toast.success('Musik berhasil dibuat!')
 
           // Save to Firestore
-          await addDoc(collection(db, 'music'), {
+          addDoc(collection(db, 'music'), {
             userId: user?.uid,
             musicId: music.id,
             title: music.title || formData.title || 'Untitled',
@@ -99,12 +136,14 @@ export default function CreatePage() {
             model: music.model,
             createdAt: Timestamp.now(),
             status: 'done',
-          })
+          }).catch(err => console.error('Firestore error:', err))
 
           setIsGenerating(false)
           setTaskUrl(null)
           setTaskStatus(null)
+          setProgressMessage('')
           setPollAttempts(0)
+          attemptsRef.current = 0
 
           // Reset form
           setFormData({
@@ -119,42 +158,72 @@ export default function CreatePage() {
           // Redirect to library
           setTimeout(() => {
             router.push('/library')
-          }, 2000)
-
-          clearInterval(pollInterval)
+          }, 1000)
         } else if (response.status === 'failed') {
+          shouldStop = true
+
+          if (toastIdRef.current) {
+            toast.dismiss(toastIdRef.current)
+            toastIdRef.current = null
+          }
+
           toast.error('Gagal membuat musik')
           setIsGenerating(false)
           setTaskUrl(null)
           setTaskStatus(null)
+          setProgressMessage('')
           setPollAttempts(0)
-          clearInterval(pollInterval)
-        } else if (pollAttempts >= MAX_ATTEMPTS) {
-          toast.error('Timeout: Pembuatan musik melebihi batas waktu')
+          attemptsRef.current = 0
+        } else if (attemptsRef.current >= MAX_ATTEMPTS) {
+          shouldStop = true
+
+          if (toastIdRef.current) {
+            toast.dismiss(toastIdRef.current)
+            toastIdRef.current = null
+          }
+
+          toast.error('Timeout: Pembuatan musik melebihi batas waktu (25 menit)')
           setIsGenerating(false)
           setTaskUrl(null)
           setTaskStatus(null)
+          setProgressMessage('')
           setPollAttempts(0)
-          clearInterval(pollInterval)
+          attemptsRef.current = 0
         }
-      } catch (error) {
+
+        if (!shouldStop && isMounted) {
+          timeoutId = setTimeout(pollLoop, 5000)
+        }
+
+      } catch (error: any) {
         console.error('Polling error:', error)
-        toast.error('Error saat polling status')
-        setIsGenerating(false)
-        setTaskUrl(null)
-        setTaskStatus(null)
-        setPollAttempts(0)
-        clearInterval(pollInterval)
+
+        if (!isMounted) return
+
+        if (error.response?.status === 401) {
+          if (toastIdRef.current) toast.dismiss(toastIdRef.current)
+          toast.error('Sesi habis, silakan login ulang')
+          setIsGenerating(false)
+          setTaskUrl(null)
+          setTaskStatus(null)
+          return // Stop
+        }
+
+        // Continue polling on other errors
+        timeoutId = setTimeout(pollLoop, 5000)
       }
     }
 
-    // Poll immediately
-    pollOnce()
+    // Start polling
+    pollLoop()
 
-    // Then poll every 5 seconds
-    const pollInterval = setInterval(pollOnce, 5000)
-
-    return () => clearInterval(pollInterval)
+    return () => {
+      isMounted = false
+      if (timeoutId) clearTimeout(timeoutId)
+      // Note: We don't dismiss toast here on unmount because if they navigate check library it might be annoying, 
+      // BUT specifically for creating, if they leave the page, we probably should dismiss "Creating...".
+      // Handled by the dedicated useEffect for toast cleaning.
+    }
   }, [taskUrl, user, formData, poll, router])
 
   const handleGenerateLyrics = async () => {
@@ -383,7 +452,7 @@ export default function CreatePage() {
                       {taskStatus === 'processing' && (
                         <div className="flex items-center justify-center gap-2 text-blue-400">
                           <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
-                          <p className="text-sm font-medium">🎵 Sedang membuat musik...</p>
+                          <p className="text-sm font-medium">🎵 {progressMessage || 'Sedang membuat musik...'}</p>
                         </div>
                       )}
                       {!taskStatus && (
@@ -775,6 +844,3 @@ export default function CreatePage() {
     </div>
   )
 }
-
-
-
